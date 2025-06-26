@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",         // Compile to modern JavaScript
+    "module": "ESNext",          // Use modern module syntax (import/export)
+    "outDir": "./dist",          // Output directory for compiled JS
+    "rootDir": "./src",          // Root directory of source TS files
+    "strict": true,              // Enable all strict type-checking options
+    "moduleResolution": "node"   // How modules get resolved
+  },
+  "include": ["src/**/*"] // Only compile files in the 'src' directory
+}

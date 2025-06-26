@@ -18,6 +18,8 @@
             # pkgs.nodejs
             pkgs.nodePackages.prettier
             pkgs.nodePackages.ts-node
+            pkgs.vscode-langservers-extracted
+            pkgs.live-server
           ];
           shellHook = ''
           export PS1="Typescript $PS1"

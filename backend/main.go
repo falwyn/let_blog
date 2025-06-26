@@ -230,7 +230,25 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 
 	}
+}
 
+// CORS middleware
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+		// Set the necessary CORS headers
+		// Use '*' for development. In production, restrict this to front end's domain
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// If it's an OPTIONS requests, just send the headers and a 200 OK
+		if r.Method == "OPTIONS" {
+			return
+		}
+
+		// Otherwise, call the next handler in the chain
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -266,7 +284,7 @@ func main() {
 
 	fmt.Println("Posts table created or already exists")
 
-	http.HandleFunc("/posts/", env.handlePostsRequest)
+	http.Handle("/posts/", enableCORS(http.HandlerFunc(env.handlePostsRequest)))
 
 	fmt.Println("Server is listening on port 8080...")
 
