@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+var env *Env
+
+
+
 // Env will hold our application's dependencies
 type Env struct {
 	db *sql.DB
@@ -239,52 +243,51 @@ func enableCORS(next http.Handler) http.Handler {
 	})
 }
 
-func main() {
+// init() runs once when the serverless function is started ("cold start")
+func init() {
+    dbURL := os.Getenv("DATABASE_URL")
+    if dbURL == "" {
+        log.Fatal("DATABASE_URL environment variable is not set")
+    }
 
-	// Neon's connection string from environment variables
-	dbURL := os.Getenv("DATABASE_URL")
+    db, err := sql.Open("pgx", dbURL)
+    if err != nil {
+        log.Fatalf("failed to open db %s: %s", dbURL, err)
+    }
+    
+    // We can't use `defer db.Close()` in init(), as the function exits immediately.
+    // The serverless environment will manage the connection's lifecycle.
 
-	db, err := sql.Open("pgx", dbURL)
+    if err := db.Ping(); err != nil {
+        log.Fatal(err)
+    }
 
-	if err != nil {
-		log.Fatalf("failed to open db %s: %s", dbURL, err)
-	}
+    createTableSQL := `CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        title TEXT,
+        content TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    );`
+    
+    if _, err := db.Exec(createTableSQL); err != nil {
+        log.Fatal(err)
+    }
 
-	defer db.Close()
+    // Initialize our global env variable
+    env = &Env{db: db}
+    fmt.Println("Database connection and table check successful.")
+}
 
-	if err := db.Ping(); err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Dabase connection successful.")
-
-	createTableSQL := `CREATE TABLE IF NOT EXISTS posts (
-		id SERIAL PRIMARY KEY,
-		title TEXT,
-		content TEXT,
-		created_at TIMESTAMPTZ DEFAULT NOW(),
-		updated_at TIMESTAMPTZ DEFAULT NOW()
-	);`
-
-	env := &Env{db: db}
-
-	_, err = db.Exec(createTableSQL)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Posts table created or already exists")
-
-	fs := http.FileServer(http.Dir("./frontend"))
-
-	http.Handle("/posts/", enableCORS(http.HandlerFunc(env.handlePostsRequest)))
-
-	http.Handle("/", fs)
-
-	fmt.Println("Server is listening on port 8080...")
-
-	// http.ListenAndServe Start the server at port 8080
-	// Wrap with log.Fatal so if the server failed to start, the program exit with error
-	log.Fatal(http.ListenAndServe(":8080", nil))
+// Handler is the exported function that Vercel will run for each request.
+// It must have this exact signature.
+func Handler(w http.ResponseWriter, r *http.Request) {
+    // We are simply using our existing handler method.
+    // We create a standard http.Handler from our method, wrap it in our
+    // CORS middleware, and then call its ServeHTTP method.
+    
+    router := http.HandlerFunc(env.handlePostsRequest)
+    corsWrapper := enableCORS(router)
+    
+    corsWrapper.ServeHTTP(w, r)
 }
