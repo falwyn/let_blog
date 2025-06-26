@@ -17,6 +17,8 @@
           packages = [
             # The Docker CLI and daemon
             pkgs.docker
+
+            pkgs.turso-cli
           ];
           
           shellHook = ''

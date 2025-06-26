@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +26,6 @@ type Post struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
-
 
 // hanlde what happen when someone visit our server's root url*
 // adding (env *Env) make handlePostsRequest a method on the *Env type
@@ -76,7 +77,7 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			row := env.db.QueryRow("SELECT id, title, content, created_at, updated_at FROM posts WHERE id = ?", id)
+			row := env.db.QueryRow("SELECT id, title, content, created_at, updated_at FROM posts WHERE id = $1", id)
 
 			var post Post
 
@@ -104,37 +105,25 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodPost:
+		var newID int
 		var newPost Post
 
-		// Read data from incoming request body
 		err := json.NewDecoder(r.Body).Decode(&newPost)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		newPost.CreatedAt = time.Now()
-		newPost.UpdatedAt = time.Now()
+		sqlStatement := `INSERT INTO  posts (title, content, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id`
 
-		sqlStatement := `INSERT INTO posts (title, content, created_at, updated_at) VALUES (?, ?, ?, ?)`
-
-		result, err := env.db.Exec(sqlStatement, newPost.Title, newPost.Content, newPost.CreatedAt, newPost.UpdatedAt)
+		err = env.db.QueryRow(sqlStatement, newPost.Title, newPost.Content, newPost.CreatedAt, newPost.UpdatedAt).Scan(&newID)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		newID, err := result.LastInsertId()
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		newPost.ID = int(newID)
-
+		newPost.ID = newID
 		newPostJSON, err := json.Marshal(newPost)
 
 		if err != nil {
@@ -164,7 +153,7 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		result, err := env.db.Exec("UPDATE posts SET title = ?, content = ?, updated_at = ? WHERE id = ?", updatedPost.Title, updatedPost.Content, time.Now(), id)
+		result, err := env.db.Exec("UPDATE posts SET title = $1, content = $2, updated_at = $3 WHERE id = $4", updatedPost.Title, updatedPost.Content, time.Now(), id)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -179,7 +168,7 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rowOfUpdatedPost := env.db.QueryRow("SELECT * FROM posts WHERE id = ?", id)
+		rowOfUpdatedPost := env.db.QueryRow("SELECT * FROM posts WHERE id = $1", id)
 
 		err = rowOfUpdatedPost.Scan(&updatedPost.ID, &updatedPost.Title, &updatedPost.Content, &updatedPost.CreatedAt, &updatedPost.UpdatedAt)
 
@@ -198,7 +187,6 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(updatedPostJSON)
 
-
 	case http.MethodDelete:
 		path := r.URL.Path
 
@@ -209,7 +197,7 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		result, err := env.db.Exec("DELETE FROM posts WHERE id = ?", id)
+		result, err := env.db.Exec("DELETE FROM posts WHERE id = $1", id)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -234,7 +222,7 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 
 // CORS middleware
 func enableCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set the necessary CORS headers
 		// Use '*' for development. In production, restrict this to front end's domain
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -252,10 +240,14 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", "./blog.db")
+
+	// Neon's connection string from environment variables
+	dbURL := os.Getenv("DATABASE_URL")
+
+	db, err := sql.Open("pgx", dbURL)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to open db %s: %s", dbURL, err)
 	}
 
 	defer db.Close()
@@ -267,11 +259,11 @@ func main() {
 	fmt.Println("Dabase connection successful.")
 
 	createTableSQL := `CREATE TABLE IF NOT EXISTS posts (
-		"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-		"title" TEXT,
-		"content" TEXT,
-		"created_at" DATETIME,
-		"updated_at" DATETIME
+		id SERIAL PRIMARY KEY,
+		title TEXT,
+		content TEXT,
+		created_at TIMESTAMPTZ DEFAULT NOW(),
+		updated_at TIMESTAMPTZ DEFAULT NOW()
 	);`
 
 	env := &Env{db: db}
