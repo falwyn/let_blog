@@ -2,14 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/dist/main.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "frontend/style.css",
-      "use": "@vercel/static"
-    },
-    {
       "src": "backend/main.go",
       "use": "@vercel/go"
     }
@@ -18,18 +10,6 @@
     {
       "src": "/posts/(.*)",
       "dest": "/backend/main.go"
-    },
-    {
-      "src": "/dist/main.js",
-      "dest": "/frontend/dist/main.js"
-    },
-    {
-      "src": "/style.css",
-      "dest": "/frontend/style.css"
-    },
-    {
-      "src": "/",
-      "dest": "/frontend/index.html"
     }
   ]
 }
