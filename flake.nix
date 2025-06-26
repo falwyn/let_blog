@@ -15,9 +15,6 @@
       {
         devShell = pkgs.mkShell {
           packages = [
-            # The Fly.io command-line tool
-            pkgs.flyctl
-
             # The Docker CLI and daemon
             pkgs.docker
           ];
@@ -25,8 +22,8 @@
           shellHook = ''
             echo "---"
             echo "Welcome to the Deployment Shell."
-            echo "Tools available: docker, flyctl"
             echo "---"
+            PS1="Docker $PS1"
           '';
         };
       }
