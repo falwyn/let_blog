@@ -284,7 +284,11 @@ func main() {
 
 	fmt.Println("Posts table created or already exists")
 
+	fs := http.FileServer(http.Dir("./frontend"))
+
 	http.Handle("/posts/", enableCORS(http.HandlerFunc(env.handlePostsRequest)))
+
+	http.Handle("/", fs)
 
 	fmt.Println("Server is listening on port 8080...")
 
