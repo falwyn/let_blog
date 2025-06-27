@@ -118,16 +118,16 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		sqlStatement := `INSERT INTO  posts (title, content, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id`
+		sqlStatement := `INSERT INTO  posts (title, content) VALUES ($1, $2) RETURNING id, created_at, updated_at`
 
-		err = env.db.QueryRow(sqlStatement, newPost.Title, newPost.Content, newPost.CreatedAt, newPost.UpdatedAt).Scan(&newID)
+		err = env.db.QueryRow(sqlStatement, newPost.Title, newPost.Content).Scan(&newPost.ID, &newPost.CreatedAt, &newPost.UpdatedAt)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		newPost.ID = newID
+		// newPost.ID = newID
 		newPostJSON, err := json.Marshal(newPost)
 
 		if err != nil {

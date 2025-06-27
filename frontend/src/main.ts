@@ -29,7 +29,7 @@ async function handleCreatePost(event: Event) {
 	const titleValue: string = postTitle.value;
 	const contentValue: string = postContent.value;
 
-	await fetch('http://localhost:8080/posts/', {
+	await fetch('/posts/', {
 		method: 'POST',
 
 		headers: {
@@ -55,7 +55,7 @@ async function handlePostAction(event: MouseEvent) {
 	if (target.classList.contains('delete-btn')) {
 		const postID = target.dataset.id
 
-		await fetch(`http://localhost:8080/posts/${postID}`, {
+		await fetch(`/posts/${postID}`, {
 			method: 'DELETE',
 		})
 
@@ -91,7 +91,7 @@ async function handlePostAction(event: MouseEvent) {
 		const editedTitle = editedTitleInput.value
 		const editedContent = editedContentTextarea.value
 
-		await fetch(`http://localhost:8080/posts/${postID}`, {
+		await fetch(`/posts/${postID}`, {
 			method: 'PUT',
 			headers: {
 				'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ async function handlePostAction(event: MouseEvent) {
 async function fetchAndRenderPosts() {
 	try {
 		// Make a GET request
-		const response = await fetch("http://localhost:8080/posts/");
+		const response = await fetch("/posts/");
 
 		// Parse the JSON response to an array of Post objects
 		const posts: Post[] = await response.json()
