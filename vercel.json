@@ -7,17 +7,16 @@
     },
     {
       "src": "frontend/package.json",
-      "use": "@vercel/node"
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
     {
       "src": "/posts/(.*)",
-      "dest": "/backend/main.go"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "dest": "backend/main.go"
     }
   ]
 }

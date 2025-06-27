@@ -1,15 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2016", // A common, compatible target
-    "module": "ES6",
-    "rootDir": "./src",   // Look for source files in 'src'
-    "outDir": "./",     // Output them to the 'frontend' root
-    "forceConsistentCasingInFileNames": true,
+    "target": "es6",
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
-
-    // This is important for module resolution with ES6
     "moduleResolution": "node",
     "skipLibCheck": true
   },
-  "include": ["src"] // Only compile files in the src directory
+  "include": ["src"]
 }
