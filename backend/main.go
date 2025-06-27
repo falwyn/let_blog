@@ -109,7 +109,7 @@ func (env *Env) handlePostsRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodPost:
-		var newID int
+		// var newID int
 		var newPost Post
 
 		err := json.NewDecoder(r.Body).Decode(&newPost)
